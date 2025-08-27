@@ -12,10 +12,12 @@ public class VersionMatcher {
     public enum ServerType {
         SPIGOT, PAPER, FOLIA, PURPUR, UNKNOWN
     }
+    Server server;
 
     private final ServerType serverType;
 
     public VersionMatcher(Server server) {
+        this.server = server;
         String version = server.getVersion().toLowerCase();
         String serverName = server.getName().toLowerCase();
         ServerType tempType;
@@ -82,6 +84,18 @@ public class VersionMatcher {
             plugin.getServer().getGlobalRegionScheduler().execute(plugin, task);
         } else {
             plugin.getServer().getScheduler().runTask(plugin, task);
+        }
+    }
+
+    public boolean isMinecraftVersionAtLeast(int major, int minor) {
+        try {
+            String version = server.getBukkitVersion().split("-")[0];
+            String[] parts = version.split("\\.");
+            int serverMajor = Integer.parseInt(parts[0]);
+            int serverMinor = Integer.parseInt(parts[1]);
+            return serverMajor > major || (serverMajor == major && serverMinor >= minor);
+        } catch (Exception e) {
+            return false;
         }
     }
 }

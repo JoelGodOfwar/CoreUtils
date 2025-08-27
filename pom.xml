@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>lib.github.joelgodofwar</groupId>
     <artifactId>core-utils</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.11</version>
 
     <repositories>
         <repository>
@@ -53,12 +53,6 @@
             <artifactId>commons-lang3</artifactId>
             <version>3.12.0</version>
             <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>net.kyori</groupId>
-            <artifactId>adventure-text-serializer-gson</artifactId>
-            <version>4.17.0</version>
-            <scope>provided</scope>
         </dependency>
     </dependencies>
     <build>

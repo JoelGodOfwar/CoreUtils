@@ -1,9 +1,9 @@
-package lib.github.joelgodofwar.coreutils.util;
+package lib.github.joelgodofwar.coreutils.util.common;
 
+import lib.github.joelgodofwar.coreutils.util.Validate;
 import lib.github.joelgodofwar.coreutils.util.error.BasicErrorReporter;
 import lib.github.joelgodofwar.coreutils.util.error.ErrorReporter;
 import lib.github.joelgodofwar.coreutils.util.error.ReportType;
-import org.apache.commons.lang.Validate;
 import org.bukkit.plugin.Plugin;
 
 public class PluginLibrary {

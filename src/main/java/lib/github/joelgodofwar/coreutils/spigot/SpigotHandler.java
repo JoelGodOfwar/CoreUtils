@@ -3,7 +3,7 @@ package lib.github.joelgodofwar.coreutils.spigot;
 import com.earth2me.essentials.Essentials;
 import lib.github.joelgodofwar.coreutils.CoreUtils;
 import lib.github.joelgodofwar.coreutils.ServerHandler;
-import lib.github.joelgodofwar.coreutils.util.PluginLibrary;
+import lib.github.joelgodofwar.coreutils.util.common.PluginLibrary;
 import lib.github.joelgodofwar.coreutils.util.error.ErrorReporter;
 import lib.github.joelgodofwar.coreutils.util.error.Report;
 import mineverse.Aust1n46.chat.api.MineverseChatAPI;

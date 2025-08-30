@@ -1,10 +1,7 @@
 package lib.github.joelgodofwar.coreutils;
 
-import lib.github.joelgodofwar.coreutils.util.ColorCodeFixer;
-import lib.github.joelgodofwar.coreutils.util.JsonConverter;
-import lib.github.joelgodofwar.coreutils.util.JsonMessageUtils;
-import lib.github.joelgodofwar.coreutils.util.PluginLibrary;
-import lib.github.joelgodofwar.coreutils.util.StrUtils;
+import lib.github.joelgodofwar.coreutils.util.*;
+import lib.github.joelgodofwar.coreutils.util.common.PluginLibrary;
 import lib.github.joelgodofwar.coreutils.version.VersionMatcher;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -13,17 +10,17 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.util.function.Consumer;
 
 public class CoreUtils {
+    public static boolean debug = false;
     private final VersionMatcher versionMatcher;
     private final ServerHandler serverHandler;
     private final JavaPlugin plugin;
     public static final ColorCodeFixer ColorCodeFixer = new ColorCodeFixer();
-    public static final StrUtils StrUtils = new StrUtils();
     public final ColorCodeFixer colorCodeFixer;
     public final JsonConverter jsonConverter;
     public final JsonMessageUtils jsonMessageUtils;
-    public final StrUtils strUtils;
 
     public CoreUtils(JavaPlugin plugin) {
+        Validate.notNull(plugin, "Plugin cannot be null");
         PluginLibrary.init(plugin, null);
         this.plugin = plugin;
         this.versionMatcher = new VersionMatcher(plugin.getServer());
@@ -31,7 +28,7 @@ public class CoreUtils {
         this.colorCodeFixer = new ColorCodeFixer();
         this.jsonConverter = new JsonConverter(plugin);
         this.jsonMessageUtils = new JsonMessageUtils(plugin);
-        this.strUtils = new StrUtils();
+
     }
 
     public String fixColors(String message) {

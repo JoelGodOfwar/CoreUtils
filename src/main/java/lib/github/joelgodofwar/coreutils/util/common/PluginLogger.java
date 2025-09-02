@@ -13,6 +13,7 @@ import java.util.logging.Logger;
 public class PluginLogger {
     private final Logger logger;
     private final String pluginName;
+    boolean debug = false;
 
     public PluginLogger(@NotNull JavaPlugin plugin) {
         Validate.notNull(plugin, "Plugin cannot be null");
@@ -42,18 +43,19 @@ public class PluginLogger {
         logger.log(level, message, ex);
     }
 
-    public void debug(String message) {
+    public void debug(String message, boolean debug) {
+        this.debug = debug;
         debug(message, "");
     }
 
     public void debug(String message, Object... args) {
-        if (CoreUtils.debug) {
+        if (debug) {
             log("[Debug] " + message, args);
         }
     }
 
     public void debug(String message, Throwable ex) {
-        if (CoreUtils.debug) {
+        if (debug) {
             log(Level.WARNING, "[Debug] " + message, ex);
         }
     }

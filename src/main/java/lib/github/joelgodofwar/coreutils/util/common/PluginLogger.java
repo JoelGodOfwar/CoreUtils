@@ -32,7 +32,6 @@ public class PluginLogger {
         } else {
             Bukkit.getConsoleSender().sendMessage(prefix + message);
         }
-        logger.log(level, ChatColor.stripColor(message), args);
     }
 
     public void log(String message, Object... args) {

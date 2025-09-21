@@ -388,6 +388,154 @@ public class Version implements Comparable<Version>, Serializable {
 		return this.compareTo(maxVersion) <= 0;
 	}
 
+	// Add to imports if needed: import lib.github.joelgodofwar.coreutils.util.NumberUtils; (or handle parsing manually)
+
+	public enum ServerType {
+		BUKKIT, SPIGOT, PAPER, PURPUR, FOLIA, UNKNOWN;
+
+		public static ServerType detect(String serverVersionStr) {
+			if (serverVersionStr == null || serverVersionStr.trim().isEmpty()) {
+				return UNKNOWN;
+			}
+			String lower = serverVersionStr.toLowerCase();
+			if (lower.contains("paper")) return PAPER;
+			if (lower.contains("spigot")) return SPIGOT;
+			if (lower.contains("purpur")) return PURPUR;
+			if (lower.contains("folia")) return FOLIA;
+			return BUKKIT; // Default for vanilla CraftBukkit
+		}
+	}
+
+	/**
+	 * Utility class for checking server version support by required type.
+	 * Usage: IsSupportedVersion.SPIGOT.check("1.20.2.3936")
+	 */
+	public static class IsSupportedVersion {
+		public static final ServerSupport SPIGOT = new ServerSupport(ServerType.SPIGOT);
+		public static final ServerSupport PAPER = new ServerSupport(ServerType.PAPER);
+		public static final ServerSupport PURPUR = new ServerSupport(ServerType.PURPUR);
+		public static final ServerSupport FOLIA = new ServerSupport(ServerType.FOLIA);
+		public static final ServerSupport BUKKIT = new ServerSupport(ServerType.BUKKIT);
+	}
+
+	public static class ServerSupport {
+		private static ServerType requiredType = null;
+
+		ServerSupport(ServerType requiredType) {
+			ServerSupport.requiredType = requiredType;
+		}
+
+		/**
+		 * Checks if the current server meets the minimum version for the required type.
+		 * @param minMCVersion Minimum in "Major.Minor.Patch[.Build]" format.
+		 * @return true if supported.
+		 */
+		public boolean check(String minMCVersion) {
+			if (minMCVersion == null || minMCVersion.trim().isEmpty()) {
+				return false;
+			}
+			try {
+				Version minFull = new Version(minMCVersion.trim());
+				Version minMC = new Version(minFull.major, minFull.minor, minFull.patch);
+
+				String serverStr = Bukkit.getVersion();
+				if (serverStr == null || serverStr.trim().isEmpty()) {
+					return false;
+				}
+
+				ServerType currentType = ServerType.detect(serverStr);
+				String mcPart = extractVersion(serverStr);
+				Version currentMC = new Version(mcPart);
+
+				// Always check MC first (quick fail)
+				if (!currentMC.isAtLeast(minMC)) {
+					return false;
+				}
+
+				if (currentType == requiredType) {
+					// Strict full check if min has build and type supports it
+					if (minFull.build > 0 && supportsNumericBuild(requiredType)) {
+						int currentBuild = extractBuild(serverStr);
+						Version currentFull = new Version(currentMC.major, currentMC.minor, currentMC.patch, currentBuild);
+						return currentFull.isAtLeast(minFull);
+					}
+					// No build req or unsupported: MC already checked
+					return true;
+				} else {
+					// Lenient for forks/other: MC already checked
+					return true;
+				}
+			} catch (Exception e) {
+				// Parsing failed: unsupported
+				return false;
+			}
+		}
+
+		public static class Build {
+			/**
+			 * Checks if the current server's build meets the minimum (lenient for non-matching types).
+			 * @param minBuildStr Minimum build as string (e.g., "3936").
+			 * @return true if supported.
+			 */
+			public boolean check(String minBuildStr) {
+				if (minBuildStr == null || minBuildStr.trim().isEmpty()) {
+					return false;
+				}
+				try {
+					int minBuild = NumberUtils.toInt(minBuildStr.trim()); // Or Integer.parseInt if no NumberUtils
+					if (minBuild <= 0) {
+						return true;
+					}
+
+					String serverStr = Bukkit.getVersion();
+					if (serverStr == null || serverStr.trim().isEmpty()) {
+						return false;
+					}
+
+					ServerType currentType = ServerType.detect(serverStr);
+
+					if (currentType != requiredType) {
+						return true; // Lenient: don't require build on wrong type
+					}
+					if (!supportsNumericBuild(requiredType)) {
+						return true; // No numeric build support: treat as ok
+					}
+
+					int currentBuild = extractBuild(serverStr);
+					return currentBuild >= minBuild;
+				} catch (Exception e) {
+					return false;
+				}
+			}
+		}
+
+		public final Build BUILD = new Build();
+	}
+
+	private static boolean supportsNumericBuild(ServerType type) {
+		return type == ServerType.SPIGOT || type == ServerType.PURPUR;
+	}
+
+	private static int extractBuild(String serverVersionStr) {
+		if (serverVersionStr == null) return 0;
+		int parenIndex = serverVersionStr.indexOf('(');
+		if (parenIndex == -1) return 0;
+		String prefix = serverVersionStr.substring(0, parenIndex).trim();
+		if (prefix.isEmpty()) return 0;
+		String[] parts = prefix.split("-");
+		if (parts.length == 0) return 0;
+		// Spigot: first part numeric (e.g., "3936-Spigot-...")
+		if (parts[0].matches("\\d+")) {
+			return NumberUtils.toInt(parts[0]); // Or Integer.parseInt
+		}
+		// Purpur: last part numeric (e.g., "git-Purpur-1694")
+		String last = parts[parts.length - 1];
+		if (last.matches("\\d+")) {
+			return NumberUtils.toInt(last);
+		}
+		return 0; // Paper/Folia: git hash, no numeric
+	}
+
 	@Override
 	public int hashCode() {
 		return Objects.hash(this.getMajor(), this.getMinor(), this.getPatch());

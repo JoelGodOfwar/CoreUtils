@@ -1,33 +1,3 @@
-/*
- * @author: Aoife (Josh)
- * @date: 2020-04-25
- * @project: WarpConverter
- *
- * Copyright (c) 2020, Aoife (Josh)
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-
 package lib.github.joelgodofwar.coreutils.util;
 
 import org.bukkit.configuration.InvalidConfigurationException;
@@ -35,25 +5,31 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.configuration.file.YamlConstructor;
 import org.bukkit.configuration.file.YamlRepresenter;
 import org.bukkit.Bukkit;
+import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.representer.Representer;
 import com.google.common.base.Charsets;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
 /**
- * A custom YAML configuration class that preserves comments when loading and saving YAML files.
+ * A custom YAML configuration class that preserves the structure of the default config.yml from the JAR,
+ * including comments and formatting, while using user values or defaults for missing keys.
  * Extends Bukkit's YamlConfiguration for compatibility with Spigot/Bukkit plugins.
  *
  * @author Aoife (Josh)
@@ -64,13 +40,53 @@ public class YmlConfiguration extends YamlConfiguration {
     private final DumperOptions yamlOptions = new DumperOptions();
     private final Representer yamlRepresenter = new YamlRepresenter();
     private final Yaml yaml = new Yaml(new YamlConstructor(), yamlRepresenter, yamlOptions);
-    private final Map<Integer, String> commentContainer = new HashMap<>();
+    private final List<String> defaultLines = new ArrayList<>();
+    private final Map<String, Integer> keyLineMap = new HashMap<>();
+    private final Map<String, Integer> indentationMap = new HashMap<>();
+    private final Map<String, Object> defaultValues = new HashMap<>();
+    private final Plugin plugin;
+
+    /**
+     * Constructor to initialize with the plugin instance for accessing JAR resources.
+     */
+    public YmlConfiguration(Plugin plugin) {
+        this.plugin = plugin;
+        loadDefaultConfig();
+    }
+
+    /**
+     * Loads the default config.yml from the JAR and stores its lines and values.
+     */
+    private void loadDefaultConfig() {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(plugin.getResource("config.yml"), Charsets.UTF_8))) {
+            StringBuilder builder = new StringBuilder();
+            String currentPath = "";
+            String line;
+            int lineNumber = -1;
+            while ((line = reader.readLine()) != null) {
+                lineNumber++;
+                defaultLines.add(line);
+                builder.append(line).append('\n');
+                String trimmedLine = line.trim();
+                if (trimmedLine.contains(":") && !trimmedLine.startsWith("-")) {
+                    String key = trimmedLine.split(":")[0].trim();
+                    currentPath = updatePath(currentPath, line);
+                    String fullPath = currentPath.isEmpty() ? key : currentPath + "." + key;
+                    keyLineMap.put(fullPath, lineNumber);
+                    indentationMap.put(fullPath, line.length() - trimmedLine.length());
+                }
+            }
+            // Load default values into a separate configuration
+            YamlConfiguration defaultConfig = new YamlConfiguration();
+            defaultConfig.loadFromString(builder.toString());
+            defaultValues.putAll(defaultConfig.getValues(false));
+        } catch (IOException | InvalidConfigurationException e) {
+            Bukkit.getLogger().log(Level.SEVERE, "Failed to load default config.yml from JAR", e);
+        }
+    }
 
     /**
      * Saves the configuration to the specified file.
-     *
-     * @param file The file to save the configuration to.
-     * @throws IOException If an I/O error occurs.
      */
     @Override
     public void save(@NotNull File file) throws IOException {
@@ -82,9 +98,6 @@ public class YmlConfiguration extends YamlConfiguration {
 
     /**
      * Saves the given configuration to the specified file.
-     *
-     * @param file   The file to save the configuration to.
-     * @param config The YmlConfiguration instance to save.
      */
     public static void saveConfig(File file, YmlConfiguration config) {
         try {
@@ -95,42 +108,52 @@ public class YmlConfiguration extends YamlConfiguration {
     }
 
     /**
-     * Converts the configuration to a YAML string, preserving comments.
-     *
-     * @return The YAML string representation of the configuration.
+     * Converts the configuration to a YAML string, using the default config's structure.
      */
     @Override
     public @NotNull String saveToString() {
         yamlOptions.setIndent(options().indent());
         yamlOptions.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
         yamlRepresenter.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-        String header = ""; // buildHeader() is not needed as Bukkit handles headers internally
-        String dump = yaml.dump(getValues(false));
 
-        if (dump.equals(BLANK_CONFIG)) {
-            dump = Strings.EMPTY;
-        } else {
-            StringBuilder sb = new StringBuilder();
-            int line = 0;
-            for (String s : dump.split("\n")) {
-                line++;
-                while (commentContainer.containsKey(line)) {
-                    sb.append(commentContainer.get(line)).append("\n");
-                    line++;
+        StringBuilder sb = new StringBuilder();
+        Map<String, Object> currentValues = getValues(false);
+
+        for (int i = 0; i < defaultLines.size(); i++) {
+            String line = defaultLines.get(i);
+            String trimmedLine = line.trim();
+
+            if (trimmedLine.startsWith("#") || trimmedLine.isEmpty()) {
+                sb.append(line).append("\n");
+            } else if (trimmedLine.contains(":") && !trimmedLine.startsWith("-")) {
+                String key = trimmedLine.split(":")[0].trim();
+                String currentPath = getPathForLine(i);
+                Object value = currentValues.getOrDefault(currentPath, defaultValues.get(currentPath));
+                if (value != null) {
+                    String indent = line.substring(0, line.length() - trimmedLine.length());
+                    String formattedValue = formatValue(value);
+                    sb.append(indent).append(key).append(": ").append(formattedValue).append("\n");
+                } else {
+                    // Skip lines for keys that are not in current or default values
+                    continue;
                 }
-                sb.append(s).append("\n");
+            } else {
+                sb.append(line).append("\n");
             }
-            dump = sb.toString();
         }
-        return header.length() > 0 ? header + dump : dump;
+
+        // Append any new keys not present in the default config
+        for (Map.Entry<String, Object> entry : currentValues.entrySet()) {
+            if (!keyLineMap.containsKey(entry.getKey())) {
+                sb.append(formatNewKey(entry.getKey(), entry.getValue())).append("\n");
+            }
+        }
+
+        return sb.toString();
     }
 
     /**
-     * Loads the configuration from the specified reader, preserving comments.
-     *
-     * @param reader The reader to load the configuration from.
-     * @throws IOException                   If an I/O error occurs.
-     * @throws InvalidConfigurationException If the configuration is invalid.
+     * Loads the configuration from the specified reader, preserving user values.
      */
     @Override
     public void load(@NotNull Reader reader) throws IOException, InvalidConfigurationException {
@@ -139,12 +162,7 @@ public class YmlConfiguration extends YamlConfiguration {
         StringBuilder builder = new StringBuilder();
         try {
             String line;
-            int count = 0;
             while ((line = input.readLine()) != null) {
-                count++;
-                if (line.contains(COMMENT_PREFIX) || line.isEmpty()) {
-                    commentContainer.put(count, line);
-                }
                 builder.append(line).append('\n');
             }
         } finally {
@@ -154,11 +172,71 @@ public class YmlConfiguration extends YamlConfiguration {
     }
 
     /**
+     * Updates the current path based on indentation and line content.
+     */
+    private String updatePath(String currentPath, String line) {
+        int indentLevel = line.length() - line.trim().length();
+        if (indentLevel == 0) return "";
+        String[] pathParts = currentPath.isEmpty() ? new String[0] : currentPath.split("\\.");
+        int expectedParts = indentLevel / options().indent();
+        StringBuilder newPath = new StringBuilder();
+        for (int i = 0; i < expectedParts && i < pathParts.length; i++) {
+            newPath.append(pathParts[i]).append(".");
+        }
+        return newPath.length() > 0 ? newPath.substring(0, newPath.length() - 1) : "";
+    }
+
+    /**
+     * Gets the configuration path for a given line number.
+     */
+    private String getPathForLine(int lineNumber) {
+        for (Map.Entry<String, Integer> entry : keyLineMap.entrySet()) {
+            if (entry.getValue() == lineNumber) {
+                return entry.getKey();
+            }
+        }
+        return "";
+    }
+
+    /**
+     * Formats a configuration value for YAML output.
+     */
+    private String formatValue(Object value) {
+        if (value instanceof List) {
+            List<?> list = (List<?>) value;
+            if (list.isEmpty()) return "";
+            StringBuilder sb = new StringBuilder();
+            for (Object item : list) {
+                sb.append("\n  - ").append(item.toString());
+            }
+            return sb.toString();
+        }
+        return value.toString();
+    }
+
+    /**
+     * Formats a new key for appending to the configuration.
+     */
+    private String formatNewKey(String path, Object value) {
+        String[] parts = path.split("\\.");
+        StringBuilder indent = new StringBuilder();
+        for (int i = 0; i < parts.length - 1; i++) {
+            indent.append("  ");
+        }
+        String key = parts[parts.length - 1];
+        if (value instanceof List) {
+            StringBuilder sb = new StringBuilder();
+            sb.append(indent).append(key).append(":");
+            for (Object item : (List<?>) value) {
+                sb.append("\n").append(indent).append("  - ").append(item.toString());
+            }
+            return sb.toString();
+        }
+        return indent + key + ": " + value.toString();
+    }
+
+    /**
      * Loads a configuration from the specified file.
-     *
-     * @param file   The file to load the configuration from.
-     * @param config The YmlConfiguration instance to load into.
-     * @return The loaded configuration.
      */
     public static YmlConfiguration loadConfiguration(File file, YmlConfiguration config) {
         Validate.notNull(file, "File cannot be null");
@@ -171,4 +249,34 @@ public class YmlConfiguration extends YamlConfiguration {
         }
         return config;
     }
+
+    // In lib.github.joelgodofwar.coreutils.util.YmlConfiguration (add this method)
+    public Double getSafeDouble(String path, Double def) {
+        String str = getString(path);
+        if (str == null || str.trim().isEmpty()) {
+            return (def != null) ? def : 0.0;
+        }
+        // Strip surrounding quotes/apostrophes (handles your old issue)
+        str = stripQuotes(str.trim());
+        try {
+            return Double.parseDouble(str);
+        } catch (NumberFormatException e) {
+            if (plugin.getLogger() != null) {
+                plugin.getLogger().warning("Invalid double at '" + path + "': " + str + " (using default)");
+            }
+            return (def != null) ? def : 0.0;
+        }
+    }
+
+    private static String stripQuotes(String str) {
+        if (str.length() >= 2) {
+            char first = str.charAt(0);
+            char last = str.charAt(str.length() - 1);
+            if ((first == '"' && last == '"') || (first == '\'' && last == '\'')) {
+                return str.substring(1, str.length() - 1).trim();
+            }
+        }
+        return str;
+    }
+
 }

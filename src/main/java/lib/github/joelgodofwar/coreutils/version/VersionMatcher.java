@@ -1,12 +1,19 @@
 package lib.github.joelgodofwar.coreutils.version;
 
 
+import lib.github.joelgodofwar.coreutils.CoreUtils;
 import lib.github.joelgodofwar.coreutils.ServerHandler;
 import lib.github.joelgodofwar.coreutils.folia.FoliaHandler;
+import lib.github.joelgodofwar.coreutils.folia.FoliaJsonMessageUtils;
 import lib.github.joelgodofwar.coreutils.paper.PaperHandler;
+import lib.github.joelgodofwar.coreutils.paper.PaperJsonMessageUtils;
 import lib.github.joelgodofwar.coreutils.spigot.SpigotHandler;
+import lib.github.joelgodofwar.coreutils.spigot.SpigotJsonMessageUtils;
+import lib.github.joelgodofwar.coreutils.util.JsonMessageUtils;
+import lib.github.joelgodofwar.coreutils.util.JsonMessageUtils2;
 import org.bukkit.Server;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.java.JavaPlugin;
 
 public class VersionMatcher {
     public enum ServerType {
@@ -76,6 +83,15 @@ public class VersionMatcher {
             return new PaperHandler();
         } else {
             return new SpigotHandler();
+        }
+    }
+    public JsonMessageUtils createJsonMessageUtils(JavaPlugin plugin, CoreUtils coreUtils) {
+        if (isRunningFolia()) {
+            return new FoliaJsonMessageUtils(plugin, coreUtils);  // Extends Paper
+        } else if (isRunningPaperOrPurpur()) {
+            return new PaperJsonMessageUtils(plugin, coreUtils);
+        } else {
+            return new SpigotJsonMessageUtils(plugin, coreUtils);
         }
     }
 

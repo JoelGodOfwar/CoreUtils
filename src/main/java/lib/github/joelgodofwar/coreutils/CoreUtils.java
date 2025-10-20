@@ -7,6 +7,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 public class CoreUtils {
@@ -27,8 +28,7 @@ public class CoreUtils {
         this.serverHandler = versionMatcher.getServerHandler();
         this.colorCodeFixer = new ColorCodeFixer();
         this.jsonConverter = new JsonConverter(plugin);
-        this.jsonMessageUtils = new JsonMessageUtils(plugin);
-
+        this.jsonMessageUtils = versionMatcher.createJsonMessageUtils(plugin, this);
     }
 
     public String fixColors(String message) {
@@ -57,5 +57,20 @@ public class CoreUtils {
 
     public VersionMatcher getVersionMatcher() {
         return versionMatcher;
+    }
+
+    public String LoadTime(long startTime) {
+        long elapsedTime = System.currentTimeMillis() - startTime;
+        long minutes = TimeUnit.MILLISECONDS.toMinutes(elapsedTime);
+        long seconds = TimeUnit.MILLISECONDS.toSeconds(elapsedTime) % 60;
+        long milliseconds = elapsedTime % 1000;
+
+        if (minutes > 0) {
+            return String.format("%d min %d s %d ms.", minutes, seconds, milliseconds);
+        } else if (seconds > 0) {
+            return String.format("%d s %d ms.", seconds, milliseconds);
+        } else {
+            return String.format("%d ms.", elapsedTime);
+        }
     }
 }

@@ -8,7 +8,6 @@ import lib.github.joelgodofwar.coreutils.util.error.ErrorReporter;
 import lib.github.joelgodofwar.coreutils.util.error.Report;
 import mineverse.Aust1n46.chat.api.MineverseChatAPI;
 import mineverse.Aust1n46.chat.api.MineverseChatPlayer;
-import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -24,14 +23,14 @@ public class SpigotHandler implements ServerHandler {
 
     @Override
     public void broadcast(CoreUtils coreUtils, Plugin plugin, String jsonMessage) {
-        TextComponent component = coreUtils.jsonMessageUtils.jsonToTextComponent(jsonMessage);
-        Bukkit.spigot().broadcast(component);
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            coreUtils.jsonMessageUtils.sendJsonMessage(player, jsonMessage);
+        }
     }
 
     @Override
     public void sendJsonMessage(CoreUtils coreUtils, Plugin plugin, Player player, String jsonMessage) {
-        TextComponent component = coreUtils.jsonMessageUtils.jsonToTextComponent(jsonMessage);
-        player.spigot().sendMessage(component);
+        coreUtils.jsonMessageUtils.sendJsonMessage(player, jsonMessage);
     }
 
     @Override
@@ -40,9 +39,11 @@ public class SpigotHandler implements ServerHandler {
         ErrorReporter reporter = PluginLibrary.getErrorReporter();
         try {
             PluginManager pluginManager = player.getServer().getPluginManager();
-            plugin.getLogger().fine("Spigot: player.getDisplayName()=" + player.getDisplayName());
-            plugin.getLogger().fine("Spigot: player.getName()=" + player.getName());
-            plugin.getLogger().fine("Spigot: useDisplayName=" + useDisplayName);
+            if (CoreUtils.debug) {
+                plugin.getLogger().fine("Spigot: player.getDisplayName()=" + player.getDisplayName());
+                plugin.getLogger().fine("Spigot: player.getName()=" + player.getName());
+                plugin.getLogger().fine("Spigot: useDisplayName=" + useDisplayName);
+            }
 
             playerName = useDisplayName ? coreUtils.colorCodeFixer.fixColorsSpigot(player.getDisplayName()) : player.getName();
 
@@ -50,13 +51,13 @@ public class SpigotHandler implements ServerHandler {
                 MineverseChatPlayer mcp = MineverseChatAPI.getMineverseChatPlayer(player);
                 String nick = mcp.getNickname();
                 if (nick != null) {
-                    plugin.getLogger().fine("Spigot: VentureChat Nick=" + nick);
+                    if (CoreUtils.debug) plugin.getLogger().fine("Spigot: VentureChat Nick=" + nick);
                     nick = coreUtils.colorCodeFixer.fixColorsSpigot(nick);
-                    plugin.getLogger().fine("Spigot: VentureChat Formatted Nick=" + nick);
+                    if (CoreUtils.debug) plugin.getLogger().fine("Spigot: VentureChat Formatted Nick=" + nick);
                     callback.accept(nick);
                     return;
                 }
-                plugin.getLogger().fine("Spigot: VentureChat Nick=null using " + playerName);
+                if (CoreUtils.debug) plugin.getLogger().fine("Spigot: VentureChat Nick=null using " + playerName);
                 callback.accept(coreUtils.colorCodeFixer.fixColorsSpigot(playerName));
                 return;
             }
@@ -65,15 +66,15 @@ public class SpigotHandler implements ServerHandler {
                 assert ess != null;
                 String nick = ess.getUserMap().getUser(player.getName()).getNickname();
                 if (nick != null) {
-                    plugin.getLogger().fine("Spigot: Essentials Nick=" + nick);
+                    if (CoreUtils.debug) plugin.getLogger().fine("Spigot: Essentials Nick=" + nick);
                     callback.accept(coreUtils.colorCodeFixer.fixColorsSpigot(nick));
                     return;
                 }
-                plugin.getLogger().fine("Spigot: Essentials Nick=null using " + playerName);
+                if (CoreUtils.debug) plugin.getLogger().fine("Spigot: Essentials Nick=null using " + playerName);
                 callback.accept(coreUtils.colorCodeFixer.fixColorsSpigot(playerName));
                 return;
             }
-            plugin.getLogger().fine("Spigot: No nickname plugins available, using=" + playerName);
+            if (CoreUtils.debug) plugin.getLogger().fine("Spigot: No nickname plugins available, using=" + playerName);
             callback.accept(coreUtils.colorCodeFixer.fixColorsSpigot(playerName));
         } catch (Exception e) {
             plugin.getLogger().warning("Spigot: Error getting nickname: " + e.getMessage());

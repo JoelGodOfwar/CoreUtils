@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>lib.github.joelgodofwar</groupId>
     <artifactId>core-utils</artifactId>
-    <version>1.0.23</version>
+    <version>1.0.26</version>
     <description>Library of CoreUtils for my plugins.</description>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -42,8 +42,14 @@
         <dependency>
             <groupId>dev.majek</groupId>
             <artifactId>hexnicks</artifactId>
-            <version>3.1.1</version>
+            <version>3.2.0</version>
             <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.tchristofferson</groupId>
+                    <artifactId>ConfigUpdater</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.github.Aust1n46</groupId>

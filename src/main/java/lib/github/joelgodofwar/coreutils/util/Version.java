@@ -15,7 +15,7 @@ public class Version implements Comparable<Version>, Serializable {
 	/**
 	 * The latest release version of minecraft.
 	 */
-	public static final Version LATEST = new Version("1.21.7");
+	public static final Version LATEST = new Version("1.21.9");
 	/**
 	 * The minimum version Plugin has been tested with.
 	 */
@@ -23,7 +23,7 @@ public class Version implements Comparable<Version>, Serializable {
 	/**
 	 * The maximum version Plugin has been tested with.
 	 */
-	public static final String MAXIMUM_MINECRAFT_VERSION = "1.21.7";
+	public static final String MAXIMUM_MINECRAFT_VERSION = "1.21.9";
 	public static final Version MC_1_14 = new Version("1.14");
 
 	private static final long serialVersionUID = 6815052987222483030L;

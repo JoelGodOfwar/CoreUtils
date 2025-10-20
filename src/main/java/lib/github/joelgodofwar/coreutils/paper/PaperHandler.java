@@ -27,16 +27,14 @@ public class PaperHandler implements ServerHandler {
 
     @Override
     public void broadcast(CoreUtils coreUtils, Plugin plugin, String jsonMessage) {
-        Component component = coreUtils.jsonMessageUtils.componentFromJson(jsonMessage);
         for (Player player : Bukkit.getOnlinePlayers()) {
-            player.sendMessage(component);
+            coreUtils.jsonMessageUtils.sendJsonMessage(player, jsonMessage);
         }
     }
 
     @Override
     public void sendJsonMessage(CoreUtils coreUtils, Plugin plugin, Player player, String jsonMessage) {
-        Component component = coreUtils.jsonMessageUtils.componentFromJson(jsonMessage);
-        player.sendMessage(component);
+        coreUtils.jsonMessageUtils.sendJsonMessage(player, jsonMessage);
     }
 
     @Override
@@ -45,9 +43,11 @@ public class PaperHandler implements ServerHandler {
         ErrorReporter reporter = PluginLibrary.getErrorReporter();
         try {
             PluginManager pluginManager = player.getServer().getPluginManager();
-            plugin.getLogger().fine("Paper: player.getDisplayName()=" + player.getDisplayName());
-            plugin.getLogger().fine("Paper: player.getName()=" + player.getName());
-            plugin.getLogger().fine("Paper: useDisplayName=" + useDisplayName);
+            if (CoreUtils.debug) {
+                plugin.getLogger().fine("Paper: player.getDisplayName()=" + player.getDisplayName());
+                plugin.getLogger().fine("Paper: player.getName()=" + player.getName());
+                plugin.getLogger().fine("Paper: useDisplayName=" + useDisplayName);
+            }
 
             playerName = useDisplayName ? coreUtils.colorCodeFixer.fixColorsPaper(player.getDisplayName()) : player.getName();
 
@@ -55,13 +55,13 @@ public class PaperHandler implements ServerHandler {
                 MineverseChatPlayer mcp = MineverseChatAPI.getMineverseChatPlayer(player);
                 String nick = mcp.getNickname();
                 if (nick != null) {
-                    plugin.getLogger().fine("Paper: VentureChat Nick=" + nick);
+                    if (CoreUtils.debug) plugin.getLogger().fine("Paper: VentureChat Nick=" + nick);
                     nick = coreUtils.colorCodeFixer.fixColorsPaper(nick);
-                    plugin.getLogger().fine("Paper: VentureChat Formatted Nick=" + nick);
+                    if (CoreUtils.debug) plugin.getLogger().fine("Paper: VentureChat Formatted Nick=" + nick);
                     callback.accept(nick);
                     return;
                 }
-                plugin.getLogger().fine("Paper: VentureChat Nick=null using " + playerName);
+                if (CoreUtils.debug) plugin.getLogger().fine("Paper: VentureChat Nick=null using " + playerName);
                 callback.accept(coreUtils.colorCodeFixer.fixColorsPaper(playerName));
                 return;
             }
@@ -70,11 +70,11 @@ public class PaperHandler implements ServerHandler {
                 assert ess != null;
                 String nick = ess.getUserMap().getUser(player.getName()).getNickname();
                 if (nick != null) {
-                    plugin.getLogger().fine("Paper: Essentials Nick=" + nick);
+                    if (CoreUtils.debug) plugin.getLogger().fine("Paper: Essentials Nick=" + nick);
                     callback.accept(coreUtils.colorCodeFixer.fixColorsPaper(nick));
                     return;
                 }
-                plugin.getLogger().fine("Paper: Essentials Nick=null using " + playerName);
+                if (CoreUtils.debug) plugin.getLogger().fine("Paper: Essentials Nick=null using " + playerName);
                 callback.accept(coreUtils.colorCodeFixer.fixColorsPaper(playerName));
                 return;
             }
@@ -82,24 +82,19 @@ public class PaperHandler implements ServerHandler {
                 CompletableFuture<Component> nickFuture = HexNicks.api().getStoredNick(player);
                 String finalPlayerName = playerName;
                 nickFuture.thenAccept(nickComponent -> {
-                    String nick = GsonComponentSerializer.gson().serialize(nickComponent);
-                    plugin.getLogger().fine("Paper: HexNicks Nick=" + nick);
-                    if (nick.contains("[")) {
-                        nick = nick.substring(nick.indexOf("[") + 1);
-                    }
-                    if (nick.contains("]")) {
-                        nick = nick.substring(0, nick.indexOf("]"));
-                    }
-                    callback.accept(coreUtils.colorCodeFixer.fixColorsPaper(nick));
+                    // CHANGED: Serialize full Component to JSON (preserves formatting)
+                    String nick = nickComponent != null ? GsonComponentSerializer.gson().serialize(nickComponent) : finalPlayerName;
+                    if (CoreUtils.debug) plugin.getLogger().fine("Paper: HexNicks Serialized Nick=" + nick);
+                    callback.accept(nick);  // JSON string for jsonMessageUtils to parse later
                 }).exceptionally(e -> {
-                    plugin.getLogger().warning("Paper: Error getting HexNicks nickname: " + e.getMessage());
+                    if (CoreUtils.debug) plugin.getLogger().warning("Paper: Error getting HexNicks nickname: " + e.getMessage());  // CHANGED: Guard
                     reporter.reportDetailed(this, Report.newBuilder(PluginLibrary.REPORT_CANNOT_GET_HEXNICK).error((Exception) e).build());
                     callback.accept(coreUtils.colorCodeFixer.fixColorsPaper(finalPlayerName));
                     return null;
                 });
                 return;
             }
-            plugin.getLogger().fine("Paper: No nickname found, using=" + playerName);
+            if (CoreUtils.debug) plugin.getLogger().fine("Paper: No nickname found, using=" + playerName);
             callback.accept(coreUtils.colorCodeFixer.fixColorsPaper(playerName));
         } catch (Exception e) {
             plugin.getLogger().warning("Paper: Error getting nickname: " + e.getMessage());

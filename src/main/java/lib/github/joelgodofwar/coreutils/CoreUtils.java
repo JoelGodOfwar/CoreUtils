@@ -29,6 +29,8 @@ public class CoreUtils {
         this.colorCodeFixer = new ColorCodeFixer();
         this.jsonConverter = new JsonConverter(plugin);
         this.jsonMessageUtils = versionMatcher.createJsonMessageUtils(plugin, this);
+        plugin.getLogger().info("CoreUtils: ServerType=" + versionMatcher.getServerTypeName() +
+                " | Using JsonMessageUtils=" + jsonMessageUtils.getClass().getSimpleName());
     }
 
     public String fixColors(String message) {

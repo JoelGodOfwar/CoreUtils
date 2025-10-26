@@ -1,10 +1,7 @@
 package lib.github.joelgodofwar.coreutils.folia;
 
-import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import lib.github.joelgodofwar.coreutils.CoreUtils;
-
 import lib.github.joelgodofwar.coreutils.paper.PaperJsonMessageUtils;
-import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -22,7 +19,7 @@ public class FoliaJsonMessageUtils extends PaperJsonMessageUtils {
     }
 
     @Override
-    public void sendJsonMessage(Player player, String json) {
-        player.getScheduler().run(this.plugin, (task) -> super.sendJsonMessage(player, json), null);
+    public void sendJsonMessage(Player player, String message) {
+        player.getScheduler().run(this.plugin, (task) -> super.sendJsonMessage(player, message), null);
     }
 }

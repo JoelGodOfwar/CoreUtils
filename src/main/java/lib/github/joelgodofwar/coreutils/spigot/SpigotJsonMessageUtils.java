@@ -25,22 +25,23 @@ public class SpigotJsonMessageUtils implements JsonMessageUtils {
 
     @Override
     public void sendMessage(Player player, String message) {
-        String formatted = coreUtils.colorCodeFixer.fixColorsSpigot(message);
+        String fixedColors = coreUtils.colorCodeFixer.fixColorsSpigot(message);
         try {
-            sendSpigotMessage(player, new TextComponent(formatted));
+            sendSpigotMessage(player, new TextComponent(fixedColors));
         } catch (Exception e) {
-            player.sendMessage(formatted);
+            player.sendMessage(fixedColors);
         }
     }
 
     @Override
-    public void sendJsonMessage(Player player, String json) {
+    public void sendJsonMessage(Player player, String message) {
+        String fixedColors = coreUtils.colorCodeFixer.fixColorsSpigot(message);
         try {
-            TextComponent component = jsonToTextComponent(json);
+            TextComponent component = jsonToTextComponent(fixedColors);
             sendSpigotMessage(player, component);
         } catch (Exception e) {
             plugin.getLogger().warning("Failed to send JSON to " + player.getName() + ": " + e.getMessage());
-            player.sendMessage(json);
+            player.sendMessage(fixedColors);
         }
     }
 
